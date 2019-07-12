@@ -16,6 +16,12 @@ const makeRequestAndUpdateCache = (request, cache) => fetch(request).then((respo
     return response;
 });
 
+const updateCache = (networkResponse, cache, url) => {
+    const isValid = networkResponse.status === 200;
+    const responseToCache = networkResponse.clone();
+    if (isValid) cache.put(url, responseToCache);
+};
+
 const shouldBeRevalidated = (request, cache) => {
     const type = request.headers.get('Application-Model');
 
@@ -32,14 +38,36 @@ const shouldBeRevalidated = (request, cache) => {
     return true;
 };
 
-const StaleWhileRevalidateHandler = (event) => {
+const makeRespond = (event) => {
     const { request, request: url } = event;
-    event.respondWith(caches.open(self.CACHE_NAME)
-        .then(cache => cache.match(url)
-            .then(cachedResponse => (!cachedResponse
-                ? makeRequestAndUpdateCache(request, cache)
-                : shouldBeRevalidated(request, cache) && cachedResponse
-            ))));
+
+    const networkRequest = fetch(request)
+        .catch(error => ({
+            caused: 'network',
+            error
+        }));
+
+    const openCacheRequest = caches.open(self.CACHE_NAME);
+    const cacheRequest = openCacheRequest
+        .then(cache => cache.match(url))
+        .catch(error => ({
+            caused: 'cache',
+            error
+        }));
+
+    Promise.all([networkRequest, openCacheRequest, cacheRequest]).then(([networkResponse, cache, cachedResponse]) => {
+        updateCache(networkResponse, cache, url);
+
+        // if (cachedResponse) shouldBeRevalidated(request, cache);
+    });
+
+    return Promise.race([networkRequest, cacheRequest])
+        .then(result => (result === undefined ? networkRequest : result))
+        .catch(({ caused }) => (caused === 'network' ? cacheRequest : networkRequest));
+};
+
+const StaleWhileRevalidateHandler = (event) => {
+    event.respondWith(makeRespond(event));
 };
 
 export default StaleWhileRevalidateHandler;
