@@ -9,61 +9,59 @@
  * @link https://github.com/scandipwa/base-theme
  */
 
-const makeRequestAndUpdateCache = (request, cache) => fetch(request).then((response) => {
-    const isValid = response.status === 200;
-    const responseToCache = response.clone();
-    if (isValid) cache.put(request.url, responseToCache);
-    return response;
-});
-
 const updateCache = (networkResponse, cache, url) => {
     const isValid = networkResponse.status === 200;
-    const responseToCache = networkResponse.clone();
-    if (isValid) cache.put(url, responseToCache);
+    if (isValid) {
+        const responseToCache = networkResponse.clone();
+        cache.put(url, responseToCache);
+    }
 };
 
-const shouldBeRevalidated = (request, cache) => {
+const shouldBeRevalidated = (request, networkResponse) => {
     const type = request.headers.get('Application-Model');
 
-    makeRequestAndUpdateCache(request, cache)
-        .then((response) => {
-            const responseClone = response.clone();
-            responseClone.json().then((payload) => {
-                const bc = new BroadcastChannel(type);
-                bc.postMessage({ payload, type });
-                bc.close();
-            }, err => console.log(err));
-        }, err => console.log(err));
-
-    return true;
+    const responseClone = networkResponse.clone();
+    responseClone.json().then((payload) => {
+        const bc = new BroadcastChannel(type);
+        bc.postMessage({ payload, type });
+        bc.close();
+    }, err => console.log(err));
 };
 
 const makeRespond = (event) => {
     const { request, request: url } = event;
 
-    const networkRequest = fetch(request)
-        .catch(error => ({
-            caused: 'network',
-            error
-        }));
+    const networkRequest = fetch(request).catch(e => ({ ...e, caused: 'network' }));
 
     const openCacheRequest = caches.open(self.CACHE_NAME);
     const cacheRequest = openCacheRequest
-        .then(cache => cache.match(url))
-        .catch(error => ({
-            caused: 'cache',
-            error
-        }));
+        .then(cache => cache.match(url));
 
-    Promise.all([networkRequest, openCacheRequest, cacheRequest]).then(([networkResponse, cache, cachedResponse]) => {
-        updateCache(networkResponse, cache, url);
+    if (request.method !== 'POST') {
+        Promise.all([networkRequest, openCacheRequest, cacheRequest])
+            .then(([networkResponse, cache, cachedResponse]) => {
+                if (!networkResponse.caused) {
+                    updateCache(networkResponse, cache, url);
 
-        // if (cachedResponse) shouldBeRevalidated(request, cache);
-    });
+                    if (cachedResponse) shouldBeRevalidated(request, cache, networkResponse);
+                }
+            });
+    }
 
     return Promise.race([networkRequest, cacheRequest])
-        .then(result => (result === undefined ? networkRequest : result))
-        .catch(({ caused }) => (caused === 'network' ? cacheRequest : networkRequest));
+        .then(
+            (result) => {
+                if (result === undefined) {
+                    return networkRequest;
+                }
+
+                if (result.caused && result.caused === 'network') {
+                    return cacheRequest;
+                }
+
+                return result;
+            },
+        );
 };
 
 const StaleWhileRevalidateHandler = (event) => {
