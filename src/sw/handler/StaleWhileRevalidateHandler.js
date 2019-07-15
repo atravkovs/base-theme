@@ -8,6 +8,7 @@
  * @package scandipwa/base-theme
  * @link https://github.com/scandipwa/base-theme
  */
+import Q from 'q';
 
 const updateCache = (networkResponse, cache, url) => {
     const isValid = networkResponse.status === 200;
@@ -31,37 +32,28 @@ const shouldBeRevalidated = (request, networkResponse) => {
 const makeRespond = (event) => {
     const { request, request: url } = event;
 
-    const networkRequest = fetch(request).catch(e => ({ ...e, caused: 'network' }));
+    const networkRequest = fetch(request);
 
     const openCacheRequest = caches.open(self.CACHE_NAME);
     const cacheRequest = openCacheRequest
         .then(cache => cache.match(url));
+    const cacheCheckedRequest = cacheRequest
+        .then((result) => {
+            if (result === undefined) throw Error('Cache does not exist');
+
+            return result;
+        });
 
     if (request.method !== 'POST') {
         Promise.all([networkRequest, openCacheRequest, cacheRequest])
             .then(([networkResponse, cache, cachedResponse]) => {
-                if (!networkResponse.caused) {
-                    updateCache(networkResponse, cache, url);
+                updateCache(networkResponse, cache, url);
 
-                    if (cachedResponse) shouldBeRevalidated(request, cache, networkResponse);
-                }
+                if (cachedResponse) shouldBeRevalidated(request, networkResponse);
             });
     }
 
-    return Promise.race([networkRequest, cacheRequest])
-        .then(
-            (result) => {
-                if (result === undefined) {
-                    return networkRequest;
-                }
-
-                if (result.caused && result.caused === 'network') {
-                    return cacheRequest;
-                }
-
-                return result;
-            },
-        );
+    return Q.any([networkRequest, cacheCheckedRequest]);
 };
 
 const StaleWhileRevalidateHandler = (event) => {
