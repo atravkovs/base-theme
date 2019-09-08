@@ -10,6 +10,7 @@
  * @link https://github.com/scandipwa/base-theme
  */
 
+
 import { Component } from 'react';
 import { Provider } from 'react-redux';
 import AppRouter from 'Route';
