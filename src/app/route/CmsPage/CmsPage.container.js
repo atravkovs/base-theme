@@ -110,11 +110,13 @@ export class CmsPageContainer extends PureComponent {
 
         updateBreadcrumbs(page);
 
-        setHeaderState({
-            name: CMS_PAGE,
-            title: content_heading,
-            onBackClick: () => history.goBack()
-        });
+        if (pathname !== '/') {
+            setHeaderState({
+                name: CMS_PAGE,
+                title: content_heading,
+                onBackClick: () => history.goBack()
+            });
+        }
 
         if ((pathname !== prevPathname || urlKey !== prevUrlKey) && urlKey !== M2_DEFAULT_HOME) {
             const urlParam = getUrlParam(match, location);
