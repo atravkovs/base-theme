@@ -48,30 +48,30 @@ export class ProductActionsContainer extends PureComponent {
 
     getMinQuantity() {
         const {
-            product: { stock_item: { min_sale_qty } = {}, variants } = {},
+            product: { min_sale_qty, variants } = {},
             configurableVariantIndex
         } = this.props;
 
-        if (!min_sale_qty) return 1;
-        if (!configurableVariantIndex && !variants) return min_sale_qty;
+        const saleQty = min_sale_qty || 1;
 
-        const { stock_item: { min_sale_qty: minVariantQty } = {} } = variants[configurableVariantIndex] || {};
+        if (!(configurableVariantIndex >= 0 && variants)) return saleQty;
+        const { min_sale_qty: minVariantQty } = variants[configurableVariantIndex] || {};
 
-        return minVariantQty || min_sale_qty;
+        return minVariantQty || saleQty;
     }
 
     getMaxQuantity() {
         const {
-            product: { stock_item: { max_sale_qty } = {}, variants } = {},
+            product: { max_sale_qty, variants } = {},
             configurableVariantIndex
         } = this.props;
 
-        if (!max_sale_qty) return DEFAULT_MAX_PRODUCTS;
-        if (!configurableVariantIndex && !variants) return max_sale_qty;
+        const saleQty = max_sale_qty || DEFAULT_MAX_PRODUCTS;
 
-        const { stock_item: { max_sale_qty: maxVariantQty } = {} } = variants[configurableVariantIndex] || {};
+        if (!(variants && configurableVariantIndex >= 0)) return saleQty;
+        const { max_sale_qty: maxVariantQty } = variants[configurableVariantIndex] || {};
 
-        return maxVariantQty || max_sale_qty;
+        return maxVariantQty || saleQty;
     }
 
     // TODO: make key=>value based

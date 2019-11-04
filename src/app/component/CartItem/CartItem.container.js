@@ -65,13 +65,12 @@ export class CartItemContainer extends PureComponent {
     }
 
     getMinQuantity() {
-        const { stock_item: { min_sale_qty } = {} } = this.getCurrentProduct() || {};
+        const { min_sale_qty } = this.getCurrentProduct() || {};
         return min_sale_qty || 1;
     }
 
     getMaxQuantity() {
-        const { stock_item: { max_sale_qty } = {} } = this.getCurrentProduct() || {};
-
+        const { max_sale_qty } = this.getCurrentProduct() || {};
         return max_sale_qty || DEFAULT_MAX_PRODUCTS;
     }
 

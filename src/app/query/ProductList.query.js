@@ -126,9 +126,10 @@ export class ProductListQuery {
             'sku',
             'name',
             'type_id',
+            'min_sale_qty',
+            'max_sale_qty',
             this._getPriceField(),
             this._getThumbnailField(),
-            this._getStockItemField(),
             this._getShortDescriptionField(),
             this._getAttributesField(isVariant),
             ...(!isVariant
@@ -181,18 +182,6 @@ export class ProductListQuery {
     _getShortDescriptionField() {
         return new Field('short_description')
             .addFieldList(this._getShortDescriptionFields());
-    }
-
-    _getStockItemField() {
-        return new Field('stock_item')
-            .addFieldList(this._getStockItemFields());
-    }
-
-    _getStockItemFields() {
-        return [
-            'min_sale_qty',
-            'max_sale_qty'
-        ];
     }
 
     _getBreadcrumbFields() {
