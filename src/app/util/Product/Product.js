@@ -157,3 +157,9 @@ export const getExtensionAttributes = (product) => {
 
     return {};
 };
+
+export const transformObjToFilters = obj => (
+    Object.entries(obj).reduce(
+        (acc, [key, val]) => ({ ...acc, [key]: [val] }), {}
+    )
+);

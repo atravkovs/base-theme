@@ -19,7 +19,6 @@ import { BreadcrumbsDispatcher } from 'Store/Breadcrumbs';
 import { history } from 'Route';
 import { PDP } from 'Component/Header';
 import { getVariantIndex } from 'Util/Product';
-import BrowserDatabase from 'Util/BrowserDatabase';
 import {
     getUrlParam,
     convertQueryStringToKeyValuePairs,
@@ -27,10 +26,6 @@ import {
     removeQueryParamWithoutHistory,
     objectToUri
 } from 'Util/Url';
-import {
-    NUMBER_OF_RECENT_PRODUCTS,
-    RECENTLY_VIEWED_PRODUCTS
-} from 'Component/RecentlyViewedProducts/RecentlyViewedProducts.component';
 import { updateRecentlyViewedProducts } from 'Store/RecentlyViewedProducts';
 
 import { ProductType } from 'Type/ProductList';
@@ -47,7 +42,7 @@ export const mapDispatchToProps = dispatch => ({
     requestProduct: options => ProductDispatcher.handleData(dispatch, options),
     updateBreadcrumbs: breadcrumbs => BreadcrumbsDispatcher.updateWithProduct(breadcrumbs, dispatch),
     clearGroupedProductQuantity: () => ProductDispatcher.clearGroupedProductQuantity(dispatch),
-    updateRecentlyViewedProducts: products => dispatch(updateRecentlyViewedProducts(products))
+    updateRecentlyViewedProducts: (product, parameters) => dispatch(updateRecentlyViewedProducts(product, parameters))
 });
 
 export class ProductPageContainer extends PureComponent {
@@ -87,28 +82,25 @@ export class ProductPageContainer extends PureComponent {
     }
 
     componentDidUpdate(
-        { location: { pathname: prevPathname, search: prevParametersString } },
+        { location: { pathname: prevPathname } },
         { parameters: prevParameters }
     ) {
         const { location: { pathname } } = this.props;
 
         if (pathname !== prevPathname) {
             this._requestProduct();
-            this._addToRecentlyViewedProducts(prevParameters, prevParametersString);
+            this._addToRecentlyViewedProduct(prevParameters);
         }
         this._onProductUpdate();
     }
 
     componentWillUnmount() {
-        const { location: { search: parametersString } } = this.props;
         const { parameters } = this.state;
-        this._addToRecentlyViewedProducts(parameters, parametersString);
-
         const { product: { type_id }, clearGroupedProductQuantity } = this.props;
 
-        if (type_id === 'grouped') return clearGroupedProductQuantity();
+        this._addToRecentlyViewedProduct(parameters);
 
-        return null;
+        if (type_id === 'grouped') clearGroupedProductQuantity();
     }
 
     static getDerivedStateFromProps(props) {
@@ -175,12 +167,6 @@ export class ProductPageContainer extends PureComponent {
         areDetailsLoaded: this._getAreDetailsLoaded()
     });
 
-    _formatParametersToFitPropTypes = parameters => (
-        Object.entries(parameters).reduce(
-            (acc, [param, val]) => ({ ...acc, [param]: [val] }), {}
-        )
-    );
-
     updateConfigurableVariant(key, value) {
         const parameters = this.getNewParameters(key, value);
         this.setState({ parameters });
@@ -224,41 +210,13 @@ export class ProductPageContainer extends PureComponent {
         }
     }
 
-    _addToRecentlyViewedProducts(newParameters = {}, newParametersString) {
-        const {
-            product, product: { sku: newSku, type_id },
-            updateRecentlyViewedProducts
-        } = this.props;
+    _addToRecentlyViewedProduct(parameters = {}) {
+        const { product, updateRecentlyViewedProducts } = this.props;
 
         // necessary for skipping not loaded products
-        if (!newSku) return;
+        if (Object.keys(product).length <= 0) return;
 
-        const recentProducts = BrowserDatabase.getItem(RECENTLY_VIEWED_PRODUCTS) || [];
-
-        const SIMPLE_PRODUCT = 'simple';
-        const similarProductExists = recentProducts.some(({ sku, parametersString }) => (
-            newSku === sku
-            && (
-                type_id === SIMPLE_PRODUCT
-                || newParametersString === parametersString
-            )
-        ));
-
-        if (similarProductExists) return;
-
-        if (recentProducts.length === NUMBER_OF_RECENT_PRODUCTS) {
-            recentProducts.pop();
-        }
-
-        const formattedParameters = this._formatParametersToFitPropTypes(newParameters);
-        const productToAdd = {
-            ...product,
-            selectedFilters: formattedParameters,
-            parametersString: newParametersString
-        };
-
-        recentProducts.unshift(productToAdd);
-        updateRecentlyViewedProducts(recentProducts);
+        updateRecentlyViewedProducts(product, parameters);
     }
 
     _getAreDetailsLoaded() {

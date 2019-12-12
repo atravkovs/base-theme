@@ -12,12 +12,8 @@
 import { PureComponent } from 'react';
 import ContentWrapper from 'Component/ContentWrapper';
 import ProductCard from 'Component/ProductCard';
-import PropTypes from 'prop-types';
 import { ItemsType } from 'Type/ProductList';
 import './RecentlyViewedProducts.style';
-
-export const RECENTLY_VIEWED_PRODUCTS = 'recentlyViewedProducts';
-export const NUMBER_OF_RECENT_PRODUCTS = 6;
 
 /**
  * RecentlyViewed products block
@@ -25,46 +21,58 @@ export const NUMBER_OF_RECENT_PRODUCTS = 6;
  */
 export default class RecentlyViewedProducts extends PureComponent {
     static propTypes = {
-        products: ItemsType.isRequired,
-        label: PropTypes.string
+        products: ItemsType.isRequired
     };
 
-    static defaultProps = {
-        label: ''
-    };
+    renderProduct(product, i) {
+        const { id, selectedFilters } = product;
 
-    renderProducts(products) {
-        if (!products.length) {
-            return (
-                <p block="RecentlyViewedProducts" elem="EmptyList">No recently viewed products.</p>
-            );
-        }
+        return (
+            <ProductCard
+              product={ product }
+              key={ `${id}_${i}` }
+              selectedFilters={ selectedFilters }
+            />
+        );
+    }
+
+    renderNoProducts() {
+        return (
+            <p block="RecentlyViewedProducts" elem="EmptyList">
+                { __('No recently viewed products.') }
+            </p>
+        );
+    }
+
+    renderProducts() {
+        const { products } = this.props;
+
+        if (!products.length) return this.renderNoProducts();
 
         return (
             <ul block="RecentlyViewedProducts" elem="List">
-            { products.slice(0, NUMBER_OF_RECENT_PRODUCTS).map((product, i) => (
-                <ProductCard
-                  selectedFilters={ product.selectedFilters }
-                  product={ product }
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={ `${product.id}_${i}` }
-                />
-            )) }
+                { products.map(this.renderProduct) }
             </ul>
         );
     }
 
-    render() {
-        const { label, products } = this.props;
+    renderLabel() {
+        return (
+            <h4 block="RecentlyViewedProducts" elem="Label">
+                { __('Recently viewed products') }
+            </h4>
+        );
+    }
 
+    render() {
         return (
             <ContentWrapper
               label="Recently viewed products"
               mix={ { block: 'RecentlyViewedProducts' } }
               wrapperMix={ { block: 'RecentlyViewedProducts', elem: 'Wrapper' } }
             >
-                { label && <h4 block="RecentlyViewedProducts" elem="Label">{ label }</h4> }
-                    { this.renderProducts(products) }
+                { this.renderLabel() }
+                { this.renderProducts() }
             </ContentWrapper>
         );
     }

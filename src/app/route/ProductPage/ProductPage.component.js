@@ -80,9 +80,7 @@ export default class ProductPage extends Component {
                   label="ScandiPWA recommends"
                   itemType=""
                 />
-                <RecentlyViewedProducts
-                  label="Recently viewed products"
-                />
+                <RecentlyViewedProducts />
             </>
         );
     }

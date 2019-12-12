@@ -13,10 +13,12 @@ export const UPDATE_RECENTLY_VIEWED_PRODUCTS = 'UPDATE_RECENTLY_VIEWED_PRODUCTS'
 
 /**
  * Update RecentlyViewed products list (rewrite if already exists).
- * @param  {Array<String>} RecentlyViewedProducts List of products returned from fetch
+ * @param  {Array<String>} product Recently viewed product
+ * @param  {Array<String>} parameters Product's parameters
  * @return {void}
  */
-export const updateRecentlyViewedProducts = recentlyViewedProducts => ({
+export const updateRecentlyViewedProducts = (product, parameters) => ({
     type: UPDATE_RECENTLY_VIEWED_PRODUCTS,
-    recentlyViewedProducts
+    product,
+    parameters
 });
